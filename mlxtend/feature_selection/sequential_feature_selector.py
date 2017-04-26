@@ -240,14 +240,14 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                         subset=prev_subset,
                         X=X,
                         y=y,
-                        fit_params
+                        fit_params=fit_params
                     )
                 else:
                     k_idx, k_score, cv_scores = self._exclusion(
                         feature_set=prev_subset,
                         X=X,
                         y=y,
-                        fit_params
+                        fit_params=fit_params
                     )
 
                 if self.floating and not self._is_stuck(sdq):
@@ -258,7 +258,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                             fixed_feature=new_feature,
                             X=X,
                             y=y,
-                            fit_params
+                            fit_params=fit_params
                         )
                     else:
                         k_idx_c, k_score_c, cv_scores_c = self._inclusion(
@@ -266,7 +266,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                             subset=set(k_idx),
                             X=X,
                             y=y,
-                            fit_params
+                            fit_params=fit_params
                         )
 
                     if k_score_c and k_score_c > k_score:
