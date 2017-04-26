@@ -154,7 +154,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         # don't mess with this unless testing
         self._TESTING_INTERRUPT_MODE = False
 
-    def fit(self, X, y):
+    def fit(self, X, y, start_features=None, fit_params=None):
         """Perform feature selection and learn model from training data.
 
         Parameters
@@ -215,14 +215,14 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         if self.forward:
             if select_in_range:
                 k_to_select = self.k_features[1]
-            k_idx = ()
-            k = 0
+            k_idx = tuple(start_features) if start_features else ()
+            k = len(k_idx)
         else:
             if select_in_range:
                 k_to_select = self.k_features[0]
             k_idx = tuple(range(X.shape[1]))
             k = len(k_idx)
-            k_score = self._calc_score(X, y, k_idx)
+            k_score = self._calc_score(X, y, k_idx, fit_params)
             self.subsets_[k] = {
                 'feature_idx': k_idx,
                 'cv_scores': k_score,
@@ -239,13 +239,15 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                         orig_set=orig_set,
                         subset=prev_subset,
                         X=X,
-                        y=y
+                        y=y,
+                        fit_params
                     )
                 else:
                     k_idx, k_score, cv_scores = self._exclusion(
                         feature_set=prev_subset,
                         X=X,
-                        y=y
+                        y=y,
+                        fit_params
                     )
 
                 if self.floating and not self._is_stuck(sdq):
@@ -255,14 +257,16 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                             feature_set=k_idx,
                             fixed_feature=new_feature,
                             X=X,
-                            y=y
+                            y=y,
+                            fit_params
                         )
                     else:
                         k_idx_c, k_score_c, cv_scores_c = self._inclusion(
                             orig_set=orig_set - {new_feature},
                             subset=set(k_idx),
                             X=X,
-                            y=y
+                            y=y,
+                            fit_params
                         )
 
                     if k_score_c and k_score_c > k_score:
@@ -325,20 +329,21 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
             stuck = True
         return stuck
 
-    def _calc_score(self, X, y, indices):
+    def _calc_score(self, X, y, indices, fit_params=None):
         if self.cv:
             scores = cross_val_score(self.est_,
                                      X[:, indices], y,
                                      cv=self.cv,
                                      scoring=self.scorer,
                                      n_jobs=self.n_jobs,
-                                     pre_dispatch=self.pre_dispatch)
+                                     pre_dispatch=self.pre_dispatch,
+                                     fit_params=fit_params)
         else:
             self.est_.fit(X[:, indices], y)
             scores = np.array([self.scorer(self.est_, X[:, indices], y)])
         return scores
 
-    def _inclusion(self, orig_set, subset, X, y):
+    def _inclusion(self, orig_set, subset, X, y, fit_params=None):
         all_avg_scores = []
         all_cv_scores = []
         all_subsets = []
@@ -347,7 +352,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         if remaining:
             for feature in remaining:
                 new_subset = tuple(subset | {feature})
-                cv_scores = self._calc_score(X, y, new_subset)
+                cv_scores = self._calc_score(X, y, new_subset, fit_params)
                 all_avg_scores.append(cv_scores.mean())
                 all_cv_scores.append(cv_scores)
                 all_subsets.append(new_subset)
@@ -357,7 +362,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                    all_cv_scores[best])
         return res
 
-    def _exclusion(self, feature_set, X, y, fixed_feature=None):
+    def _exclusion(self, feature_set, X, y, fixed_feature=None, fit_params=None):
         n = len(feature_set)
         res = (None, None, None)
         if n > 1:
@@ -367,7 +372,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
             for p in combinations(feature_set, r=n - 1):
                 if fixed_feature and fixed_feature not in set(p):
                     continue
-                cv_scores = self._calc_score(X, y, p)
+                cv_scores = self._calc_score(X, y, p, fit_params)
                 all_avg_scores.append(cv_scores.mean())
                 all_cv_scores.append(cv_scores)
                 all_subsets.append(p)
