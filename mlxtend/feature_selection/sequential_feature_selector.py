@@ -220,7 +220,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
         else:
             if select_in_range:
                 k_to_select = self.k_features[0]
-            k_idx = tuple(range(X.shape[1]))
+            k_idx = tuple(start_features) if start_features else tuple(range(X.shape[1]))
             k = len(k_idx)
             k_score = self._calc_score(X, y, k_idx, fit_params)
             self.subsets_[k] = {
