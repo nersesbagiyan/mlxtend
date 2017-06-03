@@ -300,7 +300,7 @@ class SequentialFeatureSelector(BaseEstimator, MetaEstimatorMixin):
                         k_to_select,
                         k_score
                     ))
-                    sys.stderr.write('Current feature set:', k_idx)
+                    sys.stderr.write('Current feature set: {0}'.format(list(k_idx)))
                 if self._TESTING_INTERRUPT_MODE:
                     raise KeyboardInterrupt
 
